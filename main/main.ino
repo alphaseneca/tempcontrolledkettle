@@ -6,6 +6,11 @@ communication through blynk server and the new BLYNK 2.0 platform. */
 #define BLYNK_DEVICE_NAME "Device"
 #define BLYNK_AUTH_TOKEN "YourAuthToken"
 
+// Your WiFi credentials.
+// Set password to "" for open networks.
+
+#define ID "0000"     
+#define PASSWORD "0000"
 
 // Comment this out to disable prints and save space
 #define BLYNK_PRINT Serial
@@ -15,11 +20,8 @@ communication through blynk server and the new BLYNK 2.0 platform. */
 #include <BlynkSimpleEsp8266.h>
 
 char auth[] = BLYNK_AUTH_TOKEN;
-
-// Your WiFi credentials.
-// Set password to "" for open networks.
-char ssid[] = "88888888";
-char pass[] = "88888888";
+char ssid[] = ID;
+char pass[] = PASSWORD;
 
 BlynkTimer timer;  // Initialize timer as a constructor of object BlynkTimer
 #define stat_pin D1
@@ -37,6 +39,10 @@ then the kettle is in Manual Mode and if reads low then it is in Auto mode */
 {
   state = digitalRead(stat_pin);
   Blynk.virtualWrite(V0, state);
+  if (state == 1){
+    heatersw = 0;
+    digitalWrite(relay_pin, LOW);
+    Blynk.virtualWrite(V5, heatersw);  }
 }
 
 BLYNK_WRITE(V1) {
@@ -55,12 +61,14 @@ the virtual pin V4 and setting the value to the current_temp*/
   current_temp = analogRead(probe_pin);
   current_temp = map(current_temp, 0, 1024, 0, 100);
   Blynk.virtualWrite(V4, current_temp);
+  tempcontrol();}
 
+void tempcontrol(){
+  
   int tempdiff; 
   int re_activationtemp = 2 ;
   
-
-  switch (mode_select){
+     switch (mode_select){
     case 0:
        if (current_temp >= thres_temp){
     digitalWrite(relay_pin, LOW);
@@ -75,19 +83,25 @@ the virtual pin V4 and setting the value to the current_temp*/
     } 
     else if (thres_temp > current_temp && heatersw == 1) {
        tempdiff = thres_temp - current_temp;
-       if(tempdiff == re_activationtemp){
+       if(tempdiff > re_activationtemp){
         digitalWrite(relay_pin, HIGH);         
        }   } 
     }
+  
 }
-
 
 BLYNK_WRITE(V5) {
   heatersw = param.asInt();
-  if (state == 0) {
+  if (state == 0 && heatersw == 1) {
     digitalWrite(relay_pin, HIGH);
+    Serial.println("Heater Turned On");
 }
-  else 
+else  if (state == 0 && heatersw == 0) 
+{
+  digitalWrite(relay_pin, LOW);
+  Serial.println("Heater Turned Off");
+  }
+ else 
   Serial.println("Cannot turn on the heater. Set the heater to AUTO mode ") ;
 }
 
@@ -100,7 +114,8 @@ BLYNK_WRITE(V5) {
     //Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
     //Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8080);
 
-
+    pinMode(relay_pin, OUTPUT);
+    
     timer.setInterval(1000L, status);
     timer.setInterval(1000L, readtemperature);   // Calling the status function every second.
   }
