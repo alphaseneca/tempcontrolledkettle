@@ -23,7 +23,7 @@ char pass[] = "88888888";
 
 BlynkTimer timer;  // Initialize timer as a constructor of object BlynkTimer
 #define stat_pin D1
-#define relay_pin D2
+#define relay_pin D7
 #define probe_pin A0
 
 int state = 0;
@@ -43,9 +43,11 @@ BLYNK_WRITE(V1) {
   mode_select = param.asInt();
 }
 
-BLYNK_WRITE(V2) {  // Get the value from the slider
+BLYNK_WRITE(V2) {  // Get the value from the slider_ set temperature
   thres_temp = param.asInt();
   Serial.println(thres_temp);
+Blynk.virtualWrite(V3, thres_temp); // Display the set temperature to the display at V3 
+
 }
 
 void readtemperature() { /* Function reading the current temperature and sending the data to 
@@ -53,8 +55,41 @@ the virtual pin V4 and setting the value to the current_temp*/
   current_temp = analogRead(probe_pin);
   current_temp = map(current_temp, 0, 1024, 0, 100);
   Blynk.virtualWrite(V4, current_temp);
+
+  int tempdiff; 
+  int re_activationtemp = 2 ;
+  
+
+  switch (mode_select){
+    case 0:
+       if (current_temp >= thres_temp){
+    digitalWrite(relay_pin, LOW);
+    heatersw = 0;
+    Blynk.virtualWrite(V5, heatersw );
+    }
+    break;
+
+    case 1:
+        if (current_temp >= thres_temp){
+    digitalWrite(relay_pin, LOW);
+    } 
+    else if (thres_temp > current_temp && heatersw == 1) {
+       tempdiff = thres_temp - current_temp;
+       if(tempdiff == re_activationtemp){
+        digitalWrite(relay_pin, HIGH);         
+       }   } 
+    }
 }
 
+
+BLYNK_WRITE(V5) {
+  heatersw = param.asInt();
+  if (state == 0) {
+    digitalWrite(relay_pin, HIGH);
+}
+  else 
+  Serial.println("Cannot turn on the heater. Set the heater to AUTO mode ") ;
+}
 
 
 
