@@ -33,12 +33,15 @@ void status()           /*  Function for checking the mode_status . If the digit
                             then the kettle is in Manual Mode and if reads low then it is in Auto mode
                         */
 {
-  state = digitalRead(stat_pin);
+  state = digitalRead(stat_pin);   // Reset all the values and latches the relay off if Manual mode is selected. 
   Blynk.virtualWrite(V0, state);
   if (state == 1) {
     heatersw = 0;
+    mode_select = 0;
     digitalWrite(relay_pin, LOW);
     Blynk.virtualWrite(V5, heatersw);
+    Blynk.virtualWrite(V1, mode_select);
+    Blynk.virtualWrite(V6, 0);
   }
 }
 
@@ -74,7 +77,7 @@ void tempcontrol() {      // ALL THE CONTROL LOGIC LIES IN HERE
 
   switch (mode_select) {                    // Switch for mode_select value 
     case 0:                                 // If mode_select == 0 i.e Cut OFF mode
-      if (current_temp >= thres_temp) {     // If the currrent temperarature is equals to or more than the thres_temp then turn off the heater 
+      if (current_temp >= thres_temp && heatersw == 1) {     // If the currrent temperarature is equals to or more than the thres_temp then turn off the heater 
         digitalWrite(relay_pin, LOW);
         heatersw = 0;                 
         Blynk.virtualWrite(V5, heatersw);   // Update the value to the server
@@ -86,7 +89,7 @@ void tempcontrol() {      // ALL THE CONTROL LOGIC LIES IN HERE
       break;
 
     case 1:                                 // If mode_select == 1 i.e Maintain mode
-      if (current_temp >= thres_temp) {
+      if (current_temp >= thres_temp && heatersw == 1) {
         digitalWrite(relay_pin, LOW);
         Blynk.virtualWrite(V6, 0);
         Serial.println("Threshold Temperature reached and heater has been turned off");        
