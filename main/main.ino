@@ -1,3 +1,4 @@
+
 /* Started Date : 14 Oct 2022 */
 /* TemperatureControlledKettle code is here . It is running the 
 communication through blynk server and the new BLYNK 2.0 platform. */
@@ -9,25 +10,29 @@ communication through blynk server and the new BLYNK 2.0 platform. */
 // Comment this out to disable prints and save space
 #define BLYNK_PRINT Serial
 
-
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
+#include <WiFiManager.h>
+/*https://github.com/tzapu/WiFiManager*/
 
-char auth[] = BLYNK_AUTH_TOKEN;
-char ssid[] = ID;
-char pass[] = PASSWORD;
+
+String SSID;
+String PASS;
 
 BlynkTimer timer;         // Initialize timer as a constructor of object BlynkTimer
-#define stat_pin D1       // Get the status of the kettle whether it is in Auto or Manual
-#define relay_pin D7      // Relay for the heater
+#define stat_pin    D1    // Get the status of the kettle whether it is in Auto or Manual
+#define relay_pin   D7    // Relay for the heater
                           /* Future Implementation Power MOSFET to dim the heater and Obtain PID controller*/
-#define probe_pin A0      //Temperature Probe connected to the analog pin
+#define probe_pin A0      //  Temperature Probe connected to the analog pin
 
-int state = 0;            // Initialization of all the variables
+
+int state = 0;             // Initialization of all the variables
 int mode_select = 0;
 int thres_temp;
 int current_temp;
 int heatersw;
+
+int timeout = 120;         // Time the configuration portal will run for
 
 void status()           /*  Function for checking the mode_status . If the digitalpin reads high 
                             then the kettle is in Manual Mode and if reads low then it is in Auto mode
@@ -131,18 +136,49 @@ BLYNK_WRITE(V5) {
 
 void setup() {
   Serial.begin(9600);  //Initialize serial communication
-  Blynk.begin(auth, ssid, pass);
-  // You can also specify server:
-  //Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
-  //Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8080);
-
   pinMode(relay_pin, OUTPUT);
+  pinMode(stat_pin, INPUT);
+  
+  WiFiManager wm;       //WiFiManager, Local intialization
+
+  // wm.resetSettings();
+
+  bool res;
+    //  res = wm.autoConnect(); // auto generated AP name from chipid
+      res = wm.autoConnect("Baltra1.8L WaterHeater"); // anonymous ap
+    //  res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
+
+    if(!res) {
+        Serial.println("Failed to connect");
+        // ESP.restart();
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+        SSID = wm.getWiFiSSID();
+        PASS = wm.getWiFiPass();
+        Serial.println(SSID);
+        Serial.println(PASS);
+               
+    } 
+
+  char auth[] = BLYNK_AUTH_TOKEN;
+  char ssid[SSID.length()+1];
+  char pass[PASS.length()+1];  
+  
+  strcpy(ssid,SSID.c_str());    //  Convert String to Char array
+  strcpy(pass,PASS.c_str());    //  Convert String to Char array
+  
+  Blynk.begin(auth, ssid, pass);
+  //  You can also specify server:
+  //  Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+  //  Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8080);
 
   timer.setInterval(1000L, status);
   timer.setInterval(1000L, readtemperature);  // Calling the readtemperature function every second.
 }
 
-void loop() {
+void loop() {  
   Blynk.run();
   timer.run();
 }
