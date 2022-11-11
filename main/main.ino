@@ -19,7 +19,9 @@ communication through blynk server and the new BLYNK 2.0 platform. */
 String SSID;
 String PASS;
 
+WiFiManager wm;           // Initialize wm as a object
 BlynkTimer timer;         // Initialize timer as a constructor of object BlynkTimer
+#define reset_pin   D3    // Pressing the reset pin will delete all the previous saved credentials
 #define stat_pin    D1    // Get the status of the kettle whether it is in Auto or Manual
 #define relay_pin   D7    // Relay for the heater
                           /* Future Implementation Power MOSFET to dim the heater and Obtain PID controller*/
@@ -27,6 +29,7 @@ BlynkTimer timer;         // Initialize timer as a constructor of object BlynkTi
 
 
 int state = 0;             // Initialization of all the variables
+int reset = 0;
 int mode_select = 0;
 int thres_temp;
 int current_temp;
@@ -137,12 +140,9 @@ BLYNK_WRITE(V5) {
 void setup() {
   Serial.begin(9600);  //Initialize serial communication
   pinMode(relay_pin, OUTPUT);
-  pinMode(stat_pin, INPUT);
+  pinMode(stat_pin, INPUT_PULLUP);
   
-  WiFiManager wm;       //WiFiManager, Local intialization
-
-  // wm.resetSettings();
-
+  
   bool res;
     //  res = wm.autoConnect(); // auto generated AP name from chipid
       res = wm.autoConnect("Baltra1.8L WaterHeater"); // anonymous ap
@@ -178,7 +178,13 @@ void setup() {
   timer.setInterval(1000L, readtemperature);  // Calling the readtemperature function every second.
 }
 
-void loop() {  
+void loop() {if (digitalRead(reset_pin) == 0){
+    wm.resetSettings();
+    delay(2000);
+    ESP.reset();
+    //ESP.restart();          // This also works
+  }
+
   Blynk.run();
   timer.run();
 }
