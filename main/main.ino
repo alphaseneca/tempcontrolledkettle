@@ -35,7 +35,6 @@ int thres_temp;
 int current_temp;
 int heatersw;
 
-int timeout = 120;         // Time the configuration portal will run for
 
 void status()           /*  Function for checking the mode_status . If the digitalpin reads high 
                             then the kettle is in Manual Mode and if reads low then it is in Auto mode
@@ -46,7 +45,7 @@ void status()           /*  Function for checking the mode_status . If the digit
   if (state == 1) {
     heatersw = 0;
     mode_select = 0;
-    digitalWrite(relay_pin, LOW);
+    digitalWrite(relay_pin, HIGH);  // As the relay is Active LOW
     Blynk.virtualWrite(V5, heatersw);
     Blynk.virtualWrite(V1, mode_select);
     Blynk.virtualWrite(V6, 0);
@@ -86,7 +85,7 @@ void tempcontrol() {      // ALL THE CONTROL LOGIC LIES IN HERE
   switch (mode_select) {                    // Switch for mode_select value 
     case 0:                                 // If mode_select == 0 i.e Cut OFF mode
       if (current_temp >= thres_temp && heatersw == 1) {     // If the currrent temperarature is equals to or more than the thres_temp then turn off the heater 
-        digitalWrite(relay_pin, LOW);
+        digitalWrite(relay_pin, HIGH);
         heatersw = 0;                 
         Blynk.virtualWrite(V5, heatersw);   // Update the value to the server
         Blynk.virtualWrite(V6, 0);
@@ -98,7 +97,7 @@ void tempcontrol() {      // ALL THE CONTROL LOGIC LIES IN HERE
 
     case 1:                                 // If mode_select == 1 i.e Maintain mode
       if (current_temp >= thres_temp && heatersw == 1) {
-        digitalWrite(relay_pin, LOW);
+        digitalWrite(relay_pin, HIGH);
         Blynk.virtualWrite(V6, 0);
         Serial.println("Threshold Temperature reached and heater has been turned off");        
                 
@@ -106,7 +105,7 @@ void tempcontrol() {      // ALL THE CONTROL LOGIC LIES IN HERE
        else if (thres_temp > current_temp && heatersw == 1) {
         tempdiff = thres_temp - current_temp;
         if (tempdiff > re_activationtemp) {
-          digitalWrite(relay_pin, HIGH);
+          digitalWrite(relay_pin, LOW);
           Blynk.virtualWrite(V6, 1);
           Serial.println("Heater has been reactivated to maintain the temperature");
         }
@@ -123,12 +122,12 @@ BLYNK_WRITE(V5) {
                                               */
   if (state == 0 && heatersw == 1) 
   {
-    digitalWrite(relay_pin, HIGH);
+    digitalWrite(relay_pin, LOW);
     Blynk.virtualWrite(V6, 1);
     Serial.println("Heater Turned On");
   }
    else if (state == 0 && heatersw == 0) {
-    digitalWrite(relay_pin, LOW);
+    digitalWrite(relay_pin, HIGH);
     Blynk.virtualWrite(V6, 0);   
     Serial.println("Heater Turned Off");
   } else
